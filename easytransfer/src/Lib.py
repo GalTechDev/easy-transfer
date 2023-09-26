@@ -1,6 +1,6 @@
 import json
 import socket
-import threading
+import os
 
 class Base_type:
     MSG = "msg"
@@ -36,12 +36,18 @@ class Message(Base):
     
     def send_to(self, client: socket.socket):
         client.send(self.encode())
+
+    def __str__(self) -> str:
+        return self.content
     
 class File(Base):
     def __init__(self, file_path) -> None:
         self.type = Base_type.FILE_TRANSFER
         self.file_path = file_path
         self.size = len(self)
+        file_info = os.path.splitext(file_path)
+        self.file_name = file_info[0]
+        self.file_ext = file_info[1]
 
     def getSize(file_path) -> int:
         with open(file_path) as f:
@@ -53,7 +59,7 @@ class File(Base):
         return File.getSize(self.file_path)
     
     def data(self) -> dict:
-        return {"type":self.type, "size":self.size, "file_name":"", "file_ext":""}
+        return {"type":self.type, "size":self.size, "file_name":self.file_name, "file_ext":self.file_ext}
 
     def send_to(self, client: socket.socket):
         client.send(self.encode())

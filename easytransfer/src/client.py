@@ -22,10 +22,6 @@ class Client:
         receive_thread = threading.Thread(target=self.receive, args=[callback_on_msg,callback_on_progress])
         receive_thread.start()
 
-        if __name__ == "__main__":
-            write_thread = threading.Thread(target=self.write)
-            write_thread.start()
-
     def receive(self, callback_on_msg=None, callback_on_progress=None):
         while True:
             try:
@@ -41,11 +37,13 @@ class Client:
                             print(data_json)
                         else:
                             callback_on_progress(data_json)
+                            print(data_json)
                 elif type == Base_type.MSG:
                     if callback_on_msg==None:
                         print(data_json)
                     else:
                         callback_on_msg(data_json)
+                        print(data_json)
             except json.decoder.JSONDecodeError as e:
                 print(f"Error in JSON : {data_json}")
             except Exception as e:
@@ -72,9 +70,5 @@ class Client:
         file = File(file_path)
         file.send_to(self.client)
 
-if __name__ == "__main__":
-
-    HOST = "localhost"
-    PORT = 2021
-    nickname = input("Choisir un Pseudo: ")
-    client = Client(HOST, PORT, nickname)
+    def close(self):
+        self.client.close()

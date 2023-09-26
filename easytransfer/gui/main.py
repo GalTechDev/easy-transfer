@@ -1,6 +1,25 @@
 from easytransfer.src.client import Client
+from easytransfer.src.server import Server
 import tkinter as tk
 from tkinter import filedialog, ttk
+
+def host_server():
+    global client, nickname, chat_input, text_box
+    HOST = host_entry.get()
+    PORT = int(port_entry.get())
+
+    # Créer un socket client
+    client = Server(HOST, PORT, callback_on_msg=display_message, callback_on_progress=update_bar)
+
+    # Désactiver les champs d'adresse et de port
+    host_entry.config(state=tk.DISABLED)
+    port_entry.config(state=tk.DISABLED)
+    nickname_entry.config(state=tk.DISABLED)
+    connect_button.config(state=tk.DISABLED)
+    host_button.config(state=tk.DISABLED)
+
+    chat_input.config(state=tk.NORMAL)
+    send_button.config(state=tk.NORMAL)
 
 # Fonction pour se connecter au serveur
 def connect_to_server():
@@ -17,6 +36,7 @@ def connect_to_server():
     port_entry.config(state=tk.DISABLED)
     nickname_entry.config(state=tk.DISABLED)
     connect_button.config(state=tk.DISABLED)
+    host_button.config(state=tk.DISABLED)
 
     chat_input.config(state=tk.NORMAL)
     send_button.config(state=tk.NORMAL)
@@ -48,8 +68,11 @@ def update_bar(data_json: dict):
 
 # Fonction pour fermer proprement l'application
 def on_closing():
-    client.client.close()
+    if client:
+        client.close()
     root.destroy()
+
+client = None
 
 # Créer la fenêtre tkinter
 root = tk.Tk()
@@ -76,6 +99,9 @@ port_entry.pack()
 # Bouton de connexion
 connect_button = tk.Button(root, text="Se connecter au serveur", command=connect_to_server)
 connect_button.pack()
+
+host_button = tk.Button(root, text="Lancer le serveur", command=host_server)
+host_button.pack()
 
 # Zone de texte pour afficher les messages
 text_box = tk.Text(root)
