@@ -8,7 +8,7 @@ import time
 MIN_BUFFER_SIZE = 1024
 
 # Obtenez la taille de la mémoire physique maximale (en octets)
-MAX_BUFFER_SIZE = 1024*8
+MAX_BUFFER_SIZE = 1024**3
 
 buffer_size = MIN_BUFFER_SIZE
 
@@ -18,6 +18,7 @@ def host_server():
     PORT = int(port_entry.get())
 
     # Créer un socket client
+    buffer_size = buffer_slide.get()
     client = Server(HOST, PORT, buffer_size, callback_on_msg=display_message, callback_on_progress=update_bar)
 
     # Désactiver les champs d'adresse et de port
@@ -39,6 +40,7 @@ def connect_to_server():
     nickname = nickname_entry.get()
 
     # Créer un socket client
+    buffer_size = buffer_slide.get()
     client = Client(HOST, PORT, nickname, buffer_size, callback_on_msg=display_message, callback_on_progress=update_bar)
 
     # Désactiver les champs d'adresse et de port
@@ -80,14 +82,21 @@ def update_bar(data_json: dict):
 
     # Calculer la vitesse de transfert en Ko/s
     now = time.time()
-    elapsed_time = now - update_bar.last_update if hasattr(update_bar, "last_update") else 0
+    if hasattr(update_bar, "last_update"):
+        elapsed_time = now - update_bar.last_update
+        if elapsed_time > 1:
+            speed = (actual / buffer_slide.get()) / elapsed_time
+        else:
+            speed = 0
+    else:
+        speed = 0
+
     update_bar.last_update = now
-    speed = (actual / 1024) / elapsed_time if elapsed_time > 0 else 0
 
     # Calculer le temps restant en secondes
     remaining_bytes = total - actual
     if speed > 0:
-        remaining_time = remaining_bytes / (speed * 1024)
+        remaining_time = remaining_bytes / (speed * buffer_slide.get())
     else:
         remaining_time = 0
 

@@ -58,12 +58,19 @@ class File(Base):
         return size
     
     def get_blocks(self):
-        with open(self.file_path, "rb") as f:
-            while True:
-                data = f.read(self.block_size)
-                if not data:
-                    break
-                yield data
+        try:
+            #i = 0
+            with open(self.file_path, "rb") as f:
+                while True:
+                    data = f.read(self.block_size)
+                    if not data:
+                        print("no data")
+                        break
+                    #print(i)
+                    #i+=1
+                    yield data
+        except Exception as e:
+            print(e)
     
     def __len__(self):
         return File.getSize(self.file_path)
