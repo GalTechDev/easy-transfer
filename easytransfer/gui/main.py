@@ -2,6 +2,15 @@ from easytransfer.src.client import Client
 from easytransfer.src.server import Server
 import tkinter as tk
 from tkinter import filedialog, ttk
+import time
+
+# Obtenez la taille de la mémoire physique minimale (en octets)
+MIN_BUFFER_SIZE = 1024
+
+# Obtenez la taille de la mémoire physique maximale (en octets)
+MAX_BUFFER_SIZE = 1024*8
+
+buffer_size = MIN_BUFFER_SIZE
 
 def host_server():
     global client, nickname, chat_input, text_box
@@ -9,7 +18,7 @@ def host_server():
     PORT = int(port_entry.get())
 
     # Créer un socket client
-    client = Server(HOST, PORT, callback_on_msg=display_message, callback_on_progress=update_bar)
+    client = Server(HOST, PORT, buffer_size, callback_on_msg=display_message, callback_on_progress=update_bar)
 
     # Désactiver les champs d'adresse et de port
     host_entry.config(state=tk.DISABLED)
@@ -17,6 +26,7 @@ def host_server():
     nickname_entry.config(state=tk.DISABLED)
     connect_button.config(state=tk.DISABLED)
     host_button.config(state=tk.DISABLED)
+    buffer_slide.config(state=tk.DISABLED)
 
     chat_input.config(state=tk.NORMAL)
     send_button.config(state=tk.NORMAL)
@@ -29,7 +39,7 @@ def connect_to_server():
     nickname = nickname_entry.get()
 
     # Créer un socket client
-    client = Client(HOST, PORT, nickname, callback_on_msg=display_message, callback_on_progress=update_bar)
+    client = Client(HOST, PORT, nickname, buffer_size, callback_on_msg=display_message, callback_on_progress=update_bar)
 
     # Désactiver les champs d'adresse et de port
     host_entry.config(state=tk.DISABLED)
@@ -37,6 +47,7 @@ def connect_to_server():
     nickname_entry.config(state=tk.DISABLED)
     connect_button.config(state=tk.DISABLED)
     host_button.config(state=tk.DISABLED)
+    buffer_slide.config(state=tk.DISABLED)
 
     chat_input.config(state=tk.NORMAL)
     send_button.config(state=tk.NORMAL)
@@ -63,7 +74,29 @@ def display_message(data_json: dict):
 def update_bar(data_json: dict):
     actual = data_json.get("data", {}).get("actual")
     total = data_json.get("data", {}).get("total")
-    loading_bar["value"] = (actual / total) * 100
+    progress = (actual / total) * 100
+
+    loading_bar["value"] = progress
+
+    # Calculer la vitesse de transfert en Ko/s
+    now = time.time()
+    elapsed_time = now - update_bar.last_update if hasattr(update_bar, "last_update") else 0
+    update_bar.last_update = now
+    speed = (actual / 1024) / elapsed_time if elapsed_time > 0 else 0
+
+    # Calculer le temps restant en secondes
+    remaining_bytes = total - actual
+    if speed > 0:
+        remaining_time = remaining_bytes / (speed * 1024)
+    else:
+        remaining_time = 0
+
+    # Formater le temps restant en minutes et secondes
+    minutes, seconds = divmod(int(remaining_time), 60)
+    remaining_time_str = f"{minutes} min {seconds} sec" if minutes > 0 else f"{seconds} sec"
+
+    loading_label["text"] = f"Transféré : {int(progress)}%, Vitesse : {speed:.2f} Ko/s, Temps restant : {remaining_time_str}"
+
     root.update_idletasks()
 
 # Fonction pour fermer proprement l'application
@@ -96,6 +129,12 @@ port_label.pack()
 port_entry = tk.Entry(root)
 port_entry.pack()
 
+buffer_label = tk.Label(root, text="Buffer:")
+buffer_label.pack()
+buffer_slide = tk.Scale(root, from_=MIN_BUFFER_SIZE, to=MAX_BUFFER_SIZE, orient=tk.HORIZONTAL)
+buffer_slide.set(buffer_size)
+buffer_slide.pack()
+
 # Bouton de connexion
 connect_button = tk.Button(root, text="Se connecter au serveur", command=connect_to_server)
 connect_button.pack()
@@ -122,6 +161,8 @@ file_button = tk.Button(root, text="Envoyer un fichier", command=send_file)
 file_button.config(state=tk.DISABLED)
 file_button.pack()
 
+loading_label = tk.Label(root, text="No file transfer")
+loading_label.pack()
 loading_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
 loading_bar.pack()
 

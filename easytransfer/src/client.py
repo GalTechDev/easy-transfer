@@ -25,7 +25,7 @@ class Client:
     def receive(self, callback_on_msg=None, callback_on_progress=None):
         while True:
             try:
-                data_b: bytes = self.client.recv(1024*4)
+                data_b: bytes = self.client.recv(self.buffer)
                 data = data_b.decode(FORMAT)
                 data_json: dict = json.loads(data)
                 type = data_json.get("type")
@@ -67,7 +67,7 @@ class Client:
         self.client.send(Message(message).encode(FORMAT))
 
     def send_file(self, file_path):
-        file = File(file_path)
+        file = File(file_path, self.buffer)
         file.send_to(self.client)
 
     def close(self):

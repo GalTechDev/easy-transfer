@@ -41,19 +41,29 @@ class Message(Base):
         return self.content
     
 class File(Base):
-    def __init__(self, file_path) -> None:
+    def __init__(self, file_path, block_size=4096) -> None:
         self.type = Base_type.FILE_TRANSFER
         self.file_path = file_path
         self.size = len(self)
         file_info = os.path.splitext(file_path)
         self.file_name = file_info[0]
         self.file_ext = file_info[1]
+        self.block_size = block_size
+
 
     def getSize(file_path) -> int:
         with open(file_path) as f:
             f.seek(0,2) 
             size = f.tell()
         return size
+    
+    def get_blocks(self):
+        with open(self.file_path, "rb") as f:
+            while True:
+                data = f.read(self.block_size)
+                if not data:
+                    break
+                yield data
     
     def __len__(self):
         return File.getSize(self.file_path)
@@ -78,7 +88,8 @@ class Transfer:
     def start(self):
         with open(self.file.file_path, "br") as f:
             f.seek(0,0) 
-            self.client.sendfile(f)
+            for b in self.file.get_blocks():
+                self.client.send(b)
 
 class Transfer_info(Base):
     def __init__(self, info_type, data={}) -> None:

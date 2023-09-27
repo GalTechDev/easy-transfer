@@ -37,7 +37,7 @@ class Server:
         r_thread = threading.Thread(target=self.receive)
         r_thread.start()
 
-    def broadcast(self, message):
+    def broadcast(self, message: bytes):
         msg = Message(json.loads(message.decode(FORMAT)).get("content"))
         self.callback_on_msg(msg.data())
         print(msg)
@@ -48,11 +48,11 @@ class Server:
         for client in self.clients:
             client.close()
 
-    def handle(self, client: socket):
+    def handle(self, client: socket.socket):
         while True:
             try:
                 # Broadcasting message
-                data_b: bytes = client.recv(1024*4)
+                data_b: bytes = client.recv(self.buffer)
                 
                 data = data_b.decode(FORMAT)
                 data_json: dict = json.loads(data)
@@ -72,7 +72,7 @@ class Server:
                 print(e)
                 break
 
-    def transfer(self, client, data_json):
+    def transfer(self, client: socket.socket, data_json: dict):
         file_ext = data_json.get("file_ext")
         file_ext = file_ext if file_ext != "" else ".txt"
         path = filedialog.asksaveasfilename(filetypes=((file_ext, f"*{file_ext}"), ("Any", f"*")), defaultextension=file_ext)
@@ -82,7 +82,7 @@ class Server:
 
         print(data_json)
         while run:
-            file: bytes = client.recv(1024*4)
+            file: bytes = client.recv(self.buffer)
             with open(path, "ba") as f:
                 f.write(file)
             size_receve+=len(file)
@@ -109,7 +109,7 @@ class Server:
 
                 # Request and Store NickName
                 client.send(Transfer_info(Base_type.ASK_AUTH).encode())
-                data_b: bytes = client.recv(1024*4)
+                data_b: bytes = client.recv(self.buffer)
                 data = data_b.decode(FORMAT)
                 data_json: dict = json.loads(data)
                 nickname = data_json.get("data",{}).get("nickname")
@@ -133,7 +133,7 @@ class Server:
                 print(msg)
                 break
 
-    def send_msg(self, command):
+    def send_msg(self, command: str):
         if command == "":
             return
         elif command == '!':
