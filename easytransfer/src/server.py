@@ -22,9 +22,6 @@ class Server:
         self.callback_on_progress = callback_on_progress
         self.callback_on_msg = callback_on_msg
 
-        r_thread = threading.Thread(target=self.receive)
-        r_thread.start()
-
         # Server Initialisation
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.addr)
@@ -36,6 +33,9 @@ class Server:
         # Clients Info
         self.clients = []
         self.nicknames = []
+
+        r_thread = threading.Thread(target=self.receive)
+        r_thread.start()
 
     def broadcast(self, message):
         msg = Message(json.loads(message.decode(FORMAT)).get("content"))
@@ -92,7 +92,7 @@ class Server:
                 run = False
 
             info = Transfer_info(Base_type.Transfer_info.PROGRESS, {"actual":size_receve, "total":total_size})
-            self.callback_on_progress(info)
+            self.callback_on_progress(info.data())
             client.send(info.encode())
         msg = Message("transfer complet")
         self.callback_on_msg(msg.data())
@@ -127,7 +127,7 @@ class Server:
                 #Start handeling thread from client
                 thread = threading.Thread(target=self.handle, args=(client,))
                 thread.start()
-            except:
+            except Exception as e:
                 msg = Message('[SERVER]: Server has been terminated...')
                 self.callback_on_msg(msg.data())
                 print(msg)
