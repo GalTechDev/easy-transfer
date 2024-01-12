@@ -58,8 +58,15 @@ class Server:
                 data_json: dict = json.loads(data)
                 if data_json.get("type") == Base_type.FILE_TRANSFER:
                     self.transfer(client, data_json)
-                    #thread = threading.Thread(target=transfer, args=(client, data_json))
-                    #thread.start()
+                    
+                elif type == Base_type.TRANSFER_INFO:
+                    if data_json.get("info_type") == Base_type.Transfer_info.PROGRESS:
+                        if self.callback_on_progress==None:
+                            print(data_json)
+                        else:
+                            self.callback_on_progress(data_json)
+                            print(data_json)
+
                 elif data_json.get("type") == Base_type.MSG:
                     self.broadcast(data_b)
             except Exception as e:
@@ -70,6 +77,7 @@ class Server:
                 self.broadcast(Message(f'{nickname} left!').encode())
                 self.nicknames.remove(nickname)
                 print(e)
+                print(data_b)
                 break
 
     def transfer(self, client: socket.socket, data_json: dict):
@@ -83,17 +91,37 @@ class Server:
         print(data_json)
         while run:
             file: bytes = client.recv(self.buffer)
-            with open(path, "ba") as f:
-                f.write(file)
-            size_receve+=len(file)
-            
-            print(f"file receve {size_receve}/{total_size}")
-            if size_receve >= total_size:
-                run = False
+            try:
+                # Broadcasting message
+                data_b: bytes = client.recv(self.buffer)
+                
+                data = data_b.decode(FORMAT)
+                data_json: dict = json.loads(data)
+                if data_json.get("type") == Base_type.FILE_TRANSFER:
+                    self.transfer(client, data_json)
+                    
+                elif type == Base_type.TRANSFER_INFO:
+                    if data_json.get("info_type") == Base_type.Transfer_info.PROGRESS:
+                        if self.callback_on_progress==None:
+                            print(data_json)
+                        else:
+                            self.callback_on_progress(data_json)
+                            print(data_json)
 
-            info = Transfer_info(Base_type.Transfer_info.PROGRESS, {"actual":size_receve, "total":total_size})
-            self.callback_on_progress(info.data())
-            client.send(info.encode())
+                elif data_json.get("type") == Base_type.MSG:
+                    self.broadcast(data_b)
+            except Exception as e:
+                with open(path, "ba") as f:
+                    f.write(file)
+                size_receve+=len(file)
+                
+                print(f"file receve {size_receve}/{total_size}")
+                if size_receve >= total_size:
+                    run = False
+
+                info = Transfer_info(Base_type.Transfer_info.PROGRESS, {"actual":size_receve, "total":total_size})
+                self.callback_on_progress(info.data())
+                client.send(info.encode())
         msg = Message("transfer complet")
         self.callback_on_msg(msg.data())
         client.send(msg.encode())
@@ -132,6 +160,10 @@ class Server:
                 self.callback_on_msg(msg.data())
                 print(msg)
                 break
+    
+    def send_file(self, file_path):
+        file = File(file_path, self.buffer)
+        file.send_to(self.clients[0])
 
     def send_msg(self, command: str):
         if command == "":

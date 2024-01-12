@@ -31,6 +31,7 @@ def host_server():
 
     chat_input.config(state=tk.NORMAL)
     send_button.config(state=tk.NORMAL)
+    file_button.config(state=tk.NORMAL)
 
 # Fonction pour se connecter au serveur
 def connect_to_server():
@@ -66,6 +67,7 @@ def send_message():
 def send_file():
     f_name = filedialog.askopenfilename()
     client.send_file(f_name)
+    file_button.config(state=tk.DISABLED)
 
 # Fonction pour afficher les messages reçus
 def display_message(data_json: dict):
@@ -82,19 +84,21 @@ def update_bar(data_json: dict):
 
     # Calculer la vitesse de transfert en Ko/s
     now = time.time()
-    if hasattr(update_bar, "last_update"):
-        elapsed_time = now - update_bar.last_update
+    remaining_bytes = total - actual
+
+    if hasattr(update_bar, "last_update_time"):
+        elapsed_time = now - update_bar.last_update_time
         if elapsed_time > 1:
             speed = (actual / buffer_slide.get()) / elapsed_time
+            update_bar.last_update_time = now
+            update_bar.last_update_size = remaining_bytes
+            update_bar.last_update_speed = speed
         else:
-            speed = 0
+            speed = update_bar.last_update_speed
     else:
         speed = 0
 
-    update_bar.last_update = now
-
     # Calculer le temps restant en secondes
-    remaining_bytes = total - actual
     if speed > 0:
         remaining_time = remaining_bytes / (speed * buffer_slide.get())
     else:
